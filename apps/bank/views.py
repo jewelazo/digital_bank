@@ -33,6 +33,7 @@ class BankAccountApiView(generics.GenericAPIView):
 
         
 class TransactionsApiView(generics.GenericAPIView):
+    serializer_class = TransactionModelSerializer
 
     def post(self,request):
 

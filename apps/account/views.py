@@ -25,7 +25,9 @@ class RegisterApi(generics.GenericAPIView):
 
 class LogoutApi(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
-        user = User.objects.filter(username=request.data.get("username"))
+        username = request.user.username
+        user = User.objects.filter(username=username)
+
         if user.exists():
             RefreshToken.for_user(user.first())
             return Response({"response": "Success Logout"},status=status.HTTP_200_OK)
