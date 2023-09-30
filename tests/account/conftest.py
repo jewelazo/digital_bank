@@ -32,4 +32,4 @@ def api_client_with_token():
     refresh = RefreshToken.for_user(user)
     client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
 
-    return client, user.username
+    return client

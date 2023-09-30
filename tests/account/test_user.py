@@ -36,8 +36,7 @@ def test_jwt_token_with_correct_credentials(api_client,create_user_payload):
 
 @pytest.mark.django_db
 def test_logout_user_with_jwt_token(api_client_with_token):
-    api_client, username = api_client_with_token
     url = '/api/logout/'
-    response = api_client.post(url,{"username": username}, format="json")
+    response = api_client_with_token.post(url)
 
     assert response.status_code == status.HTTP_200_OK
