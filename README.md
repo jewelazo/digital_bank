@@ -1,6 +1,6 @@
 # Digital Bank
 
-ApiRest built with Django Rest Framework 4.2.5
+ApiRest built with Django Rest Framework 3.14.0 and Django 4.2.5
 # ERD
 <p align="center">
            <img src="https://lucid.app/publicSegments/view/f56589fc-8908-4c80-9de7-cb3e682dfdb9/image.png"/>
@@ -12,15 +12,15 @@ ApiRest built with Django Rest Framework 4.2.5
 3) Open the terminal in working directory:
 4) Clone this repository:
 ```
-           git clone https://github.com/jewelazo/challenge-ctc
+           git clone https://github.com/jewelazo/digital_bank.git
 ```
 5) Create a virtual environmnent:
 ```
-            virtualenv -p python3 env
+            python -m venv .venv
 ```
 6) Activate the virtual environment:
 ```
-            .\env\Scripts\activate
+            .\.venv\Scripts\activate
 ```
 
 7) Install libraries:
