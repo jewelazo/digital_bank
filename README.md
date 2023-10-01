@@ -36,8 +36,14 @@ ApiRest built with Django Rest Framework 3.14.0 and Django 4.2.5
 ```
             (env) python manage.py runserver
 ```
-10) Explore API Documentation to review endpoints and remember add your token in this format "Bearer {{your_token}}:
+11) Explore API Documentation to review endpoints and remember add your token in this format "Bearer {{your_token}}:
 ```
             http://127.0.0.1:8000/apidocs/
+```
+12) Also is available django admin panel, so make sure to create a superuser and then go /admin:
+
+```
+           python manage.py createsuperuser
+           http://127.0.0.1:8000/admin
 ```
   
