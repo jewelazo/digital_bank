@@ -24,7 +24,7 @@ ApiRest built with Django Rest Framework 3.14.0 and Django 4.2.5
 ```
 7) Create your postgresql database and add its values in your .env file, please follow .env.example as template:
 
-8) Install libraries:
+8) Go to project folder and install libraries:
 ```
             (env) pip install -r requirements.txt
 ```
@@ -32,7 +32,7 @@ ApiRest built with Django Rest Framework 3.14.0 and Django 4.2.5
 ```
             (env) python manage.py migrate
 ```
-10) Go to project folder and run this command:
+10) Start running the server with this command:
 ```
             (env) python manage.py runserver
 ```
