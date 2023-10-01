@@ -15,6 +15,7 @@ class BankAccount(models.Model):
     
 class Transaction(models.Model):
     bank_account = models.ForeignKey(BankAccount, verbose_name=_('bank_account'),on_delete=models.CASCADE, related_name="transactions")
+    bank_account_to = models.ForeignKey(BankAccount, verbose_name=_('bank_account_to'),on_delete=models.CASCADE, related_name="transactions_to", blank=True, null=True)
     amount = models.DecimalField(verbose_name=_('amount'), decimal_places=2, max_digits=8, validators=[MinValueValidator(0.01)] )
     transaction_type = models.CharField(verbose_name=_('transaction_type'), choices=TRANSACTION_TYPE_LIST, max_length=20)
     created_at = models.DateTimeField(verbose_name=_('created_at'), auto_now_add=True)

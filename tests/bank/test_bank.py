@@ -114,7 +114,7 @@ def test_not_create_deposit_transaction_between_distinct_accounts_from_insuffici
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 @pytest.mark.django_db
-def test_create_transaction_deposit_between_distinct_accounts(api_client_logged):
+def test_create_deposit_transaction_between_distinct_accounts(api_client_logged):
     
     url1 = '/api/bank-accounts/'
     response1 = api_client_logged.post(url1)
