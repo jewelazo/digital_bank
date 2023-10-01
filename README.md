@@ -31,4 +31,8 @@ ApiRest built with Django Rest Framework 3.14.0 and Django 4.2.5
 ```
             (env) python manage.py runserver
 ```
+8) Explore APIDocs endpoints:
+```
+            http://127.0.0.1:8000/apidocs/
+```
   
