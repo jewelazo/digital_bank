@@ -40,7 +40,7 @@ ApiRest built with Django Rest Framework 3.14.0 and Django 4.2.5
 ```
             http://127.0.0.1:8000/apidocs/
 ```
-12) Also is available django admin panel, so make sure to create a superuser and then go /admin:
+12) Also is available django admin panel, so make sure to create a superuser and then go to /admin:
 
 ```
            python manage.py createsuperuser
