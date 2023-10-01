@@ -41,7 +41,7 @@ class TransactionsApiView(generics.GenericAPIView):
 
         if transaction_serializer.is_valid():
     
-            bank_account = transaction_serializer.validated_data["back_account_number"]
+            bank_account = transaction_serializer.validated_data["bank_account_number"]
             transaction_type = transaction_serializer.validated_data["transaction_type"]
             amount = transaction_serializer.validated_data["amount"]
 

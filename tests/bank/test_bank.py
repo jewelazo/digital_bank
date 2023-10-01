@@ -32,7 +32,7 @@ def test_create_transaction_from_user_accounts(api_client_logged):
     url = '/api/bank-accounts/'
     response = api_client_logged.post(url)
     response_data = response.data
-    payload = {'back_account_number': response_data["account_number"], 'amount': '1000', 'transaction_type': "deposit"}
+    payload = {'bank_account_number': response_data["account_number"], 'amount': '1000', 'transaction_type': "deposit"}
     url = '/api/transactions/'
     response = api_client_logged.post(url,payload, format="json")
     assert response.status_code == status.HTTP_201_CREATED
@@ -43,7 +43,7 @@ def test_not_create_transaction_from_any_account_number(api_client_logged):
 
     url = '/api/bank-accounts/'
     response = api_client_logged.post(url)
-    payload = {'back_account_number': "1458723658456544", 'amount': '1000', 'transaction_type': "deposit"}
+    payload = {'bank_account_number': "1458723658456544", 'amount': '1000', 'transaction_type': "deposit"}
     url = '/api/transactions/'
     response = api_client_logged.post(url,payload, format="json")
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -55,9 +55,10 @@ def test_not_create_transaction_from_insufficient_balance_account(api_client_log
     url = '/api/bank-accounts/'
     response = api_client_logged.post(url)
     response_data = response.data
-    payload = {'back_account_number': response_data["account_number"], 'amount': '1000', 'transaction_type': "deposit"}
+    payload = {'bank_account_number': response_data["account_number"], 'amount': '1000', 'transaction_type': "deposit"}
     url = '/api/transactions/'
-    payload = {'back_account_number': response_data["account_number"], 'amount': '2000', 'transaction_type': "withdrawals"}
+    response = api_client_logged.post(url,payload, format="json")
+    payload = {'bank_account_number': response_data["account_number"], 'amount': '2000', 'transaction_type': "withdrawals"}
     response = api_client_logged.post(url,payload, format="json")
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST

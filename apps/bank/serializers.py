@@ -25,11 +25,11 @@ class BankAccountModelSerializer(serializers.ModelSerializer):
 
 class TransactionModelSerializer(serializers.ModelSerializer):
 
-    back_account_number = serializers.SlugRelatedField(queryset=BankAccount.objects.all(),slug_field='account_number')
+    bank_account_number = serializers.SlugRelatedField(queryset=BankAccount.objects.all(),slug_field='account_number')
 
     class Meta:
         model = Transaction
-        fields = ("amount", "transaction_type","back_account_number",)
+        fields = ("amount", "transaction_type","bank_account_number",)
 
 
 class TransactionSerializer(serializers.ModelSerializer):
