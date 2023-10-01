@@ -22,7 +22,7 @@ ApiRest built with Django Rest Framework 3.14.0 and Django 4.2.5
 ```
             .\.venv\Scripts\activate
 ```
-7) Create your postgresql database and add its values in your .env file, please follow .env.example as example:
+7) Create your postgresql database and add its values in your .env file, please follow .env.example as template:
 
 8) Install libraries:
 ```
