@@ -4,15 +4,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('bank', '0003_alter_bankaccount_balance_alter_transaction_amount'),
+        ("bank", "0003_alter_bankaccount_balance_alter_transaction_amount"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='transaction',
-            name='transaction_type',
-            field=models.CharField(choices=[('deposit', 'deposit'), ('withdrawal', 'withdrawal')], max_length=20, verbose_name='transaction_type'),
+            model_name="transaction",
+            name="transaction_type",
+            field=models.CharField(
+                choices=[("deposit", "deposit"), ("withdrawal", "withdrawal")],
+                max_length=20,
+                verbose_name="transaction_type",
+            ),
         ),
     ]
