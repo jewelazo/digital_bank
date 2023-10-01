@@ -6,20 +6,56 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('bank', '0001_initial'),
+        ("bank", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Transaction',
+            name="Transaction",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('amount', models.DecimalField(decimal_places=2, max_digits=6, validators=[django.core.validators.MinValueValidator(0.01)], verbose_name='amount')),
-                ('transaction_type', models.CharField(choices=[('deposit', 'deposit'), ('withdrawals', 'withdrawals')], max_length=20, verbose_name='transaction_type')),
-                ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='created_at')),
-                ('bank_account', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='transactions', to='bank.bankaccount', verbose_name='bank_account')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "amount",
+                    models.DecimalField(
+                        decimal_places=2,
+                        max_digits=6,
+                        validators=[django.core.validators.MinValueValidator(0.01)],
+                        verbose_name="amount",
+                    ),
+                ),
+                (
+                    "transaction_type",
+                    models.CharField(
+                        choices=[
+                            ("deposit", "deposit"),
+                            ("withdrawals", "withdrawals"),
+                        ],
+                        max_length=20,
+                        verbose_name="transaction_type",
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="created_at"),
+                ),
+                (
+                    "bank_account",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="transactions",
+                        to="bank.bankaccount",
+                        verbose_name="bank_account",
+                    ),
+                ),
             ],
         ),
     ]

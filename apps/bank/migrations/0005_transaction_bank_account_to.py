@@ -5,15 +5,21 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('bank', '0004_alter_transaction_transaction_type'),
+        ("bank", "0004_alter_transaction_transaction_type"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='transaction',
-            name='bank_account_to',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='transactions_to', to='bank.bankaccount', verbose_name='bank_account_to'),
+            model_name="transaction",
+            name="bank_account_to",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="transactions_to",
+                to="bank.bankaccount",
+                verbose_name="bank_account_to",
+            ),
         ),
     ]
