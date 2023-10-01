@@ -1,6 +1,8 @@
 import pytest
 from rest_framework import status
 
+#-----------------------------------BankAccount tests------------------------------------------
+
 @pytest.mark.django_db
 def test_create_bank_account(api_client_logged):
     api_client = api_client_logged
@@ -25,7 +27,8 @@ def test_get_all_accounts_from_logged_user(api_client_logged):
     assert type(response_json) == type([])
     assert len(response_json) == 1
     assert "transactions" in response_json[0]
-    
+
+#-----------------------------------Transaction tests(desposit and withdrawal) from the same account-------------------------------------------
 @pytest.mark.django_db
 def test_create_transaction_from_user_accounts(api_client_logged):
 
@@ -58,7 +61,7 @@ def test_not_create_transaction_from_insufficient_balance_account(api_client_log
     payload = {'bank_account_number': response_data["account_number"], 'amount': '1000', 'transaction_type': "deposit"}
     url = '/api/transactions/'
     response = api_client_logged.post(url,payload, format="json")
-    payload = {'bank_account_number': response_data["account_number"], 'amount': '2000', 'transaction_type': "withdrawals"}
+    payload = {'bank_account_number': response_data["account_number"], 'amount': '2000', 'transaction_type': "withdrawal"}
     response = api_client_logged.post(url,payload, format="json")
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST

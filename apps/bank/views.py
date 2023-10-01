@@ -56,7 +56,7 @@ class TransactionsApiView(generics.GenericAPIView):
                 
                 return Response({"response":"Success Transaction"}, status=status.HTTP_201_CREATED)
             
-            elif transaction_type == TRANSACTION_TYPE_DICT["WITHDRAWALS"]:
+            elif transaction_type == TRANSACTION_TYPE_DICT["WITHDRAWAL"]:
                 if amount <= bank_account.balance:
                     Transaction.objects.create(bank_account=bank_account, amount=amount, transaction_type=transaction_type)
                     bank_account.balance -= amount
