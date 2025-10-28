@@ -1,9 +1,13 @@
 from datetime import timedelta
 from pathlib import Path
 import environ
+import os
 
 env = environ.Env()
-environ.Env.read_env()
+environ.Env.read_env(
+    os.path.join(os.path.dirname(os.path.dirname(
+        os.path.dirname(__file__))), ".env")
+)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -40,6 +44,7 @@ LOCAL_APPS = [
 THIRD_APPS = [
     "rest_framework",
     "drf_yasg",
+    "django_extensions",
 ]
 
 INSTALLED_APPS = BASE_APPS + LOCAL_APPS + THIRD_APPS
