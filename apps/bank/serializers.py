@@ -7,7 +7,8 @@ from .constants import TRANSACTION_TYPE_DICT
 
 
 class BankAccountSerializer(serializers.Serializer):
-    user_id = PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
+    user_id = PrimaryKeyRelatedField(
+        queryset=User.objects.all(), required=False)
 
 
 class BankAccountModelSerializer(serializers.ModelSerializer):
@@ -17,7 +18,8 @@ class BankAccountModelSerializer(serializers.ModelSerializer):
         transactions_from = instance.transactions.all()
         transactions_to = instance.transactions_to.all()
         transactions = (
-            (transactions_from | transactions_to).order_by("-created_at").distinct()
+            (transactions_from | transactions_to).order_by(
+                "-created_at").distinct()
         )
         return TransactionSerializer(transactions, many=True).data
 

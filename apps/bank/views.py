@@ -1,15 +1,22 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from django.db.models import F
+from drf_yasg.utils import swagger_auto_schema
 
 from .serializers import (
     BankAccountSerializer,
     BankAccountModelSerializer,
     TransactionModelSerializer,
+    TransactionSerializer,
 )
 from .models import BankAccount, Transaction
 from .utils import generate_bank_number
 from .constants import TRANSACTION_TYPE_DICT
+from .swagger_schemas import (
+    transaction_list_params,
+    transaction_list_responses,
+    transaction_list_description,
+)
 
 # Create your views here.
 
@@ -131,3 +138,39 @@ class TransactionsApiView(generics.GenericAPIView):
         return Response(
             transaction_serializer.errors, status=status.HTTP_400_BAD_REQUEST
         )
+
+
+class TransactionListApiView(generics.GenericAPIView):
+    @swagger_auto_schema(
+        operation_description=transaction_list_description,
+        manual_parameters=transaction_list_params,
+        responses=transaction_list_responses,
+    )
+    def get(self, request, id=None):
+        bank_account = BankAccount.objects.filter(id=id).first()
+        if not bank_account or (
+            bank_account and bank_account not in request.user.accounts.all()
+        ):
+            return Response(
+                {"Error": "Should send a valid bank account and must be yours"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Convert string query params to boolean
+        deposit = request.query_params.get("deposit", "true").lower() == "true"
+        withdrawal = request.query_params.get("withdrawal", "true").lower() == "true"
+
+        transactions = bank_account.transactions.all()
+
+        if deposit and not withdrawal:
+            transactions = transactions.filter(
+                transaction_type=TRANSACTION_TYPE_DICT["DEPOSIT"]
+            )
+        elif withdrawal and not deposit:
+            transactions = transactions.filter(
+                transaction_type=TRANSACTION_TYPE_DICT["WITHDRAWAL"]
+            )
+
+        transactions_serializer = TransactionSerializer(transactions, many=True)
+
+        return Response(transactions_serializer.data, status=status.HTTP_200_OK)
