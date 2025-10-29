@@ -1,185 +1,174 @@
 import pytest
 from rest_framework import status
+from decimal import Decimal
 
-# ------------------------------------------------------------------BankAccount tests------------------------------------------------------------
-
-
-@pytest.mark.django_db
-def test_create_bank_account(api_client_logged):
-    api_client = api_client_logged
-    url = "/api/bank-accounts/"
-    response = api_client.post(url)
-    data = response.data
-
-    assert response.status_code == status.HTTP_201_CREATED
-    assert "account_number" in data
-    assert "balance" in data
+from tests.bank.conftest import (
+    BANK_ACCOUNTS_URL,
+    TRANSACTIONS_URL,
+    INITIAL_DEPOSIT_AMOUNT,
+    TEST_DEPOSIT_AMOUNT,
+    TEST_WITHDRAWAL_AMOUNT,
+    INVALID_ACCOUNT_NUMBER,
+    create_transaction,
+    get_account_balance,
+)
 
 
 @pytest.mark.django_db
-def test_get_all_accounts_from_logged_user(api_client_logged):
-    api_client = api_client_logged
-    url = "/api/bank-accounts/"
-    response = api_client.post(url)
-    response = api_client.get(url)
-    response_json = response.json()
+class TestBankAccount:
+    """Test suite for bank account operations."""
 
-    assert response.status_code == status.HTTP_200_OK
-    assert type(response_json) == type([])
-    assert len(response_json) == 1
-    assert "transactions" in response_json[0]
+    def test_create_bank_account(self, api_client_logged):
+        """Test that a bank account can be created successfully."""
+        response = api_client_logged.post(BANK_ACCOUNTS_URL)
+        data = response.data
 
+        assert response.status_code == status.HTTP_201_CREATED
+        assert "account_number" in data
+        assert "balance" in data
+        assert Decimal(data["balance"]) == Decimal("0.00")
 
-# -----------------------------------Transaction tests(desposit and withdrawal) from the same account-------------------------------------------
+    def test_get_all_accounts_from_logged_user(self, api_client_logged, bank_account):
+        """Test that all bank accounts for logged user can be retrieved."""
+        response = api_client_logged.get(BANK_ACCOUNTS_URL)
+        response_json = response.json()
 
-
-@pytest.mark.django_db
-def test_create_transaction_from_user_accounts(api_client_logged):
-    url = "/api/bank-accounts/"
-    response = api_client_logged.post(url)
-    response_data = response.data
-    payload = {
-        "bank_account_number": response_data["account_number"],
-        "amount": "1000",
-        "transaction_type": "deposit",
-    }
-    url = "/api/transactions/"
-    response = api_client_logged.post(url, payload, format="json")
-    assert response.status_code == status.HTTP_201_CREATED
+        assert response.status_code == status.HTTP_200_OK
+        assert isinstance(response_json, list)
+        assert len(response_json) == 1
+        assert "transactions" in response_json[0]
+        assert response_json[0]["account_number"] == bank_account["account_number"]
 
 
 @pytest.mark.django_db
-def test_not_create_transaction_from_any_account_number(api_client_logged):
-    url = "/api/bank-accounts/"
-    response = api_client_logged.post(url)
-    payload = {
-        "bank_account_number": "1458723658456544",
-        "amount": "1000",
-        "transaction_type": "deposit",
-    }
-    url = "/api/transactions/"
-    response = api_client_logged.post(url, payload, format="json")
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+class TestSameAccountTransactions:
+    """Test suite for deposit and withdrawal operations on the same account."""
+
+    def test_create_deposit_transaction(self, api_client_logged, bank_account):
+        """Test that a deposit transaction can be created successfully."""
+        response = create_transaction(
+            api_client_logged,
+            bank_account["account_number"],
+            TEST_DEPOSIT_AMOUNT,
+            "deposit"
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["response"] == "Success Transaction"
+
+        # Verify balance was updated
+        balance = get_account_balance(
+            api_client_logged, bank_account["account_number"])
+        assert balance == Decimal(TEST_DEPOSIT_AMOUNT)
+
+    def test_not_create_transaction_with_invalid_account_number(self, api_client_logged):
+        """Test that transaction with invalid account number is rejected."""
+        response = create_transaction(
+            api_client_logged,
+            INVALID_ACCOUNT_NUMBER,
+            TEST_DEPOSIT_AMOUNT,
+            "deposit"
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_not_create_withdrawal_from_insufficient_balance(self, api_client_logged, bank_account):
+        """Test that withdrawal with insufficient balance is rejected."""
+        # Create initial deposit of 1000
+        create_transaction(
+            api_client_logged,
+            bank_account["account_number"],
+            TEST_DEPOSIT_AMOUNT,
+            "deposit"
+        )
+
+        # Try to withdraw 2000 (more than available balance)
+        response = create_transaction(
+            api_client_logged,
+            bank_account["account_number"],
+            TEST_WITHDRAWAL_AMOUNT,
+            "withdrawal"
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data["response"] == "Insufficient bank account balance"
 
 
 @pytest.mark.django_db
-def test_not_create_transaction_from_insufficient_balance_account(api_client_logged):
-    url = "/api/bank-accounts/"
-    response = api_client_logged.post(url)
-    response_data = response.data
-    payload = {
-        "bank_account_number": response_data["account_number"],
-        "amount": "1000",
-        "transaction_type": "deposit",
-    }
-    url = "/api/transactions/"
-    response = api_client_logged.post(url, payload, format="json")
-    payload = {
-        "bank_account_number": response_data["account_number"],
-        "amount": "2000",
-        "transaction_type": "withdrawal",
-    }
-    response = api_client_logged.post(url, payload, format="json")
+class TestAccountTransfers:
+    """Test suite for transfer operations between different accounts."""
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    @pytest.mark.parametrize("transaction_type", ["deposit", "withdrawal"])
+    def test_not_create_transfer_to_same_account(
+        self, api_client_logged, bank_account_with_balance, transaction_type
+    ):
+        """Test that transfers to the same account are rejected."""
+        response = create_transaction(
+            api_client_logged,
+            bank_account_with_balance["account_number"],
+            TEST_WITHDRAWAL_AMOUNT,
+            transaction_type,
+            account_number_to=bank_account_with_balance["account_number"]
+        )
 
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-# ------------------Transaction tests(desposit and withdrawal) between distinct accounts("bank_account_number_to" field in payload)-------------------------------------------
+    def test_not_create_transfer_with_insufficient_balance(
+        self, api_client_logged, two_bank_accounts
+    ):
+        """Test that transfer with insufficient balance is rejected."""
+        account1, account2 = two_bank_accounts
 
+        # Deposit only 1000 to account1
+        create_transaction(
+            api_client_logged,
+            account1["account_number"],
+            TEST_DEPOSIT_AMOUNT,
+            "deposit"
+        )
 
-@pytest.mark.django_db
-def test_not_create_deposit_transaction_between_same_account(api_client_logged):
-    url1 = "/api/bank-accounts/"
-    response = api_client_logged.post(url1)
-    response_data = response.data
-    payload = {
-        "bank_account_number": response_data["account_number"],
-        "amount": "5000",
-        "transaction_type": "deposit",
-    }
-    url2 = "/api/transactions/"
-    response = api_client_logged.post(url2, payload, format="json")
-    payload = {
-        "bank_account_number": response_data["account_number"],
-        "bank_account_number_to": response_data["account_number"],
-        "amount": "2000",
-        "transaction_type": "deposit",
-    }
-    response = api_client_logged.post(url2, payload, format="json")
+        # Try to transfer 5000 (more than available)
+        response = create_transaction(
+            api_client_logged,
+            account1["account_number"],
+            INITIAL_DEPOSIT_AMOUNT,
+            "deposit",
+            account_number_to=account2["account_number"]
+        )
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data["response"] == "Insufficient bank account balance"
 
+    def test_create_transfer_between_accounts(self, api_client_logged, two_bank_accounts):
+        """Test that a successful transfer between accounts works correctly."""
+        account1, account2 = two_bank_accounts
 
-@pytest.mark.django_db
-def test_not_create_withdrawal_transaction_between_same_account(api_client_logged):
-    url1 = "/api/bank-accounts/"
-    response = api_client_logged.post(url1)
-    response_data = response.data
-    payload = {
-        "bank_account_number": response_data["account_number"],
-        "amount": "5000",
-        "transaction_type": "deposit",
-    }
-    url2 = "/api/transactions/"
-    response = api_client_logged.post(url2, payload, format="json")
-    payload = {
-        "bank_account_number": response_data["account_number"],
-        "bank_account_number_to": response_data["account_number"],
-        "amount": "2000",
-        "transaction_type": "withdrawal",
-    }
-    response = api_client_logged.post(url2, payload, format="json")
+        # Initial deposit to account1
+        create_transaction(
+            api_client_logged,
+            account1["account_number"],
+            INITIAL_DEPOSIT_AMOUNT,
+            "deposit"
+        )
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+        # Transfer 2000 from account1 to account2
+        response = create_transaction(
+            api_client_logged,
+            account1["account_number"],
+            TEST_WITHDRAWAL_AMOUNT,
+            "deposit",
+            account_number_to=account2["account_number"]
+        )
 
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["response"] == "Success Transaction"
 
-@pytest.mark.django_db
-def test_not_create_deposit_transaction_between_distinct_accounts_from_insufficient_balance(
-    api_client_logged,
-):
-    url1 = "/api/bank-accounts/"
-    response1 = api_client_logged.post(url1)
-    response2 = api_client_logged.post(url1)
-    response_data1 = response1.data
-    response_data2 = response2.data
-    payload = {
-        "bank_account_number": response_data1["account_number"],
-        "amount": "1000",
-        "transaction_type": "deposit",
-    }
-    url2 = "/api/transactions/"
-    response = api_client_logged.post(url2, payload, format="json")
-    payload = {
-        "bank_account_number": response_data1["account_number"],
-        "bank_account_number_to": response_data2["account_number"],
-        "amount": "5000",
-        "transaction_type": "deposit",
-    }
-    response = api_client_logged.post(url2, payload, format="json")
+        # Verify balances
+        balance1 = get_account_balance(
+            api_client_logged, account1["account_number"])
+        balance2 = get_account_balance(
+            api_client_logged, account2["account_number"])
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-
-@pytest.mark.django_db
-def test_create_deposit_transaction_between_distinct_accounts(api_client_logged):
-    url1 = "/api/bank-accounts/"
-    response1 = api_client_logged.post(url1)
-    response2 = api_client_logged.post(url1)
-    response_data1 = response1.data
-    response_data2 = response2.data
-    payload = {
-        "bank_account_number": response_data1["account_number"],
-        "amount": "5000",
-        "transaction_type": "deposit",
-    }
-    url2 = "/api/transactions/"
-    response = api_client_logged.post(url2, payload, format="json")
-    payload = {
-        "bank_account_number": response_data1["account_number"],
-        "bank_account_number_to": response_data2["account_number"],
-        "amount": "2000",
-        "transaction_type": "deposit",
-    }
-    response = api_client_logged.post(url2, payload, format="json")
-
-    assert response.status_code == status.HTTP_201_CREATED
+        assert balance1 == Decimal(
+            INITIAL_DEPOSIT_AMOUNT) - Decimal(TEST_WITHDRAWAL_AMOUNT)
+        assert balance2 == Decimal(TEST_WITHDRAWAL_AMOUNT)
