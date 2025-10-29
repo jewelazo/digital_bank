@@ -50,36 +50,36 @@ class TestSameAccountTransactions:
             api_client_logged,
             bank_account["account_number"],
             TEST_DEPOSIT_AMOUNT,
-            "deposit"
+            "deposit",
         )
 
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["response"] == "Success Transaction"
 
         # Verify balance was updated
-        balance = get_account_balance(
-            api_client_logged, bank_account["account_number"])
+        balance = get_account_balance(api_client_logged, bank_account["account_number"])
         assert balance == Decimal(TEST_DEPOSIT_AMOUNT)
 
-    def test_not_create_transaction_with_invalid_account_number(self, api_client_logged):
+    def test_not_create_transaction_with_invalid_account_number(
+        self, api_client_logged
+    ):
         """Test that transaction with invalid account number is rejected."""
         response = create_transaction(
-            api_client_logged,
-            INVALID_ACCOUNT_NUMBER,
-            TEST_DEPOSIT_AMOUNT,
-            "deposit"
+            api_client_logged, INVALID_ACCOUNT_NUMBER, TEST_DEPOSIT_AMOUNT, "deposit"
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_not_create_withdrawal_from_insufficient_balance(self, api_client_logged, bank_account):
+    def test_not_create_withdrawal_from_insufficient_balance(
+        self, api_client_logged, bank_account
+    ):
         """Test that withdrawal with insufficient balance is rejected."""
         # Create initial deposit of 1000
         create_transaction(
             api_client_logged,
             bank_account["account_number"],
             TEST_DEPOSIT_AMOUNT,
-            "deposit"
+            "deposit",
         )
 
         # Try to withdraw 2000 (more than available balance)
@@ -87,7 +87,7 @@ class TestSameAccountTransactions:
             api_client_logged,
             bank_account["account_number"],
             TEST_WITHDRAWAL_AMOUNT,
-            "withdrawal"
+            "withdrawal",
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -108,7 +108,7 @@ class TestAccountTransfers:
             bank_account_with_balance["account_number"],
             TEST_WITHDRAWAL_AMOUNT,
             transaction_type,
-            account_number_to=bank_account_with_balance["account_number"]
+            account_number_to=bank_account_with_balance["account_number"],
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -124,7 +124,7 @@ class TestAccountTransfers:
             api_client_logged,
             account1["account_number"],
             TEST_DEPOSIT_AMOUNT,
-            "deposit"
+            "deposit",
         )
 
         # Try to transfer 5000 (more than available)
@@ -133,13 +133,15 @@ class TestAccountTransfers:
             account1["account_number"],
             INITIAL_DEPOSIT_AMOUNT,
             "deposit",
-            account_number_to=account2["account_number"]
+            account_number_to=account2["account_number"],
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["response"] == "Insufficient bank account balance"
 
-    def test_create_transfer_between_accounts(self, api_client_logged, two_bank_accounts):
+    def test_create_transfer_between_accounts(
+        self, api_client_logged, two_bank_accounts
+    ):
         """Test that a successful transfer between accounts works correctly."""
         account1, account2 = two_bank_accounts
 
@@ -148,7 +150,7 @@ class TestAccountTransfers:
             api_client_logged,
             account1["account_number"],
             INITIAL_DEPOSIT_AMOUNT,
-            "deposit"
+            "deposit",
         )
 
         # Transfer 2000 from account1 to account2
@@ -157,18 +159,30 @@ class TestAccountTransfers:
             account1["account_number"],
             TEST_WITHDRAWAL_AMOUNT,
             "deposit",
-            account_number_to=account2["account_number"]
+            account_number_to=account2["account_number"],
         )
 
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["response"] == "Success Transaction"
 
         # Verify balances
-        balance1 = get_account_balance(
-            api_client_logged, account1["account_number"])
-        balance2 = get_account_balance(
-            api_client_logged, account2["account_number"])
+        balance1 = get_account_balance(api_client_logged, account1["account_number"])
+        balance2 = get_account_balance(api_client_logged, account2["account_number"])
 
-        assert balance1 == Decimal(
-            INITIAL_DEPOSIT_AMOUNT) - Decimal(TEST_WITHDRAWAL_AMOUNT)
+        assert balance1 == Decimal(INITIAL_DEPOSIT_AMOUNT) - Decimal(
+            TEST_WITHDRAWAL_AMOUNT
+        )
         assert balance2 == Decimal(TEST_WITHDRAWAL_AMOUNT)
+
+
+@pytest.mark.django_db
+class TestListTransactions:
+    def test_list_transactions(self, api_client_logged, bank_account_with_balance):
+        """Test that transactions for a bank account can be listed."""
+        response = api_client_logged.get(
+            f"{TRANSACTIONS_URL}{bank_account_with_balance['id']}/"
+        )
+        response_json = response.json()
+        assert response.status_code == status.HTTP_200_OK
+        assert isinstance(response_json, list)
+        # assert len(response_json) == 3  # Assuming 3 transactions were created in the fixture
