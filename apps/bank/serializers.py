@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from rest_framework.relations import PrimaryKeyRelatedField
+from django.utils.translation import gettext_lazy as _
 
 from apps.account.models import User
 from .models import BankAccount, Transaction
@@ -35,7 +36,10 @@ class BankAccountModelSerializer(serializers.ModelSerializer):
 
 class TransactionModelSerializer(serializers.ModelSerializer):
     bank_account_number = serializers.SlugRelatedField(
-        queryset=BankAccount.objects.all(), slug_field="account_number"
+        queryset=BankAccount.objects.all(),
+        slug_field="account_number",
+        label=_("Bank account number"),
+        help_text=_("Bank account number")
     )
     # Optional field in payload, only to transactions between distinct accounts, default=None
     bank_account_number_to = serializers.SlugRelatedField(
@@ -44,6 +48,8 @@ class TransactionModelSerializer(serializers.ModelSerializer):
         allow_null=True,
         required=False,
         default=None,
+        label=_("Bank account number to"),
+        help_text=_("Bank account number to x-nullable: true")
     )
 
     def validate(self, data):
