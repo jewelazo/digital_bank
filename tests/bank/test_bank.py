@@ -57,7 +57,8 @@ class TestSameAccountTransactions:
         assert response.data["response"] == "Success Transaction"
 
         # Verify balance was updated
-        balance = get_account_balance(api_client_logged, bank_account["account_number"])
+        balance = get_account_balance(
+            api_client_logged, bank_account["account_number"])
         assert balance == Decimal(TEST_DEPOSIT_AMOUNT)
 
     def test_not_create_transaction_with_invalid_account_number(
@@ -166,8 +167,10 @@ class TestAccountTransfers:
         assert response.data["response"] == "Success Transaction"
 
         # Verify balances
-        balance1 = get_account_balance(api_client_logged, account1["account_number"])
-        balance2 = get_account_balance(api_client_logged, account2["account_number"])
+        balance1 = get_account_balance(
+            api_client_logged, account1["account_number"])
+        balance2 = get_account_balance(
+            api_client_logged, account2["account_number"])
 
         assert balance1 == Decimal(INITIAL_DEPOSIT_AMOUNT) - Decimal(
             TEST_WITHDRAWAL_AMOUNT

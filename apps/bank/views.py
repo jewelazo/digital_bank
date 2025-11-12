@@ -1,11 +1,9 @@
-from rest_framework import generics, status
+from rest_framework import generics, status, serializers
 from rest_framework.response import Response
 from django.db.models import F
 from drf_yasg.utils import swagger_auto_schema
 
 from .serializers import (
-    BankAccountSerializer,
-    BankAccountModelSerializer,
     TransactionModelSerializer,
     TransactionSerializer,
 )
@@ -17,34 +15,55 @@ from .swagger_schemas import (
     transaction_list_responses,
     transaction_list_description,
 )
-
-# Create your views here.
+from .services.bank_account_create import bank_account_create
 
 
 class BankAccountApiView(generics.GenericAPIView):
+    class InputSerializer(serializers.Serializer):
+        initial_balance = serializers.DecimalField(
+            max_digits=12, decimal_places=2, required=False, default=0.00, min_value=0.00, help_text="Initial balance for the bank account",
+        )
+
+    class OutputSerializer(serializers.ModelSerializer):
+        transactions = serializers.SerializerMethodField()
+
+        def get_transactions(self, instance):
+            transactions_from = instance.transactions.all()
+            transactions_to = instance.transactions_to.all()
+            transactions = (
+                (transactions_from | transactions_to).order_by(
+                    "-created_at").distinct()
+            )
+            return TransactionSerializer(transactions, many=True).data
+
+        class Meta:
+            model = BankAccount
+            fields = (
+                "id",
+                "account_number",
+                "balance",
+                "transactions",
+            )
+
     def get(self, request):
         accounts = request.user.accounts
-        accounts_serializer = BankAccountModelSerializer(accounts, many=True)
+        accounts_serializer = self.OutputSerializer(accounts, many=True)
 
         return Response(accounts_serializer.data, status=status.HTTP_200_OK)
 
+    @swagger_auto_schema(
+        request_body=InputSerializer,
+        responses={201: OutputSerializer()}
+    )
     def post(self, request):
-        bank_account_serializer = BankAccountSerializer(data=request.data)
+        bank_account_serializer = self.InputSerializer(data=request.data)
+        bank_account_serializer.is_valid(raise_exception=True)
+        bank_account = bank_account_create(
+            user=request.user, initial_balance=bank_account_serializer.validated_data["initial_balance"])
 
-        if bank_account_serializer.is_valid():
-            user = request.user
-            account_number = generate_bank_number()
-
-            bank_account = BankAccount.objects.create(
-                user=user, account_number=account_number
-            )
-            bank_account_serializer = BankAccountModelSerializer(bank_account)
-            return Response(
-                bank_account_serializer.data, status=status.HTTP_201_CREATED
-            )
-
+        bank_account_serializer = self.OutputSerializer(bank_account)
         return Response(
-            bank_account_serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            bank_account_serializer.data, status=status.HTTP_201_CREATED
         )
 
 
@@ -158,7 +177,8 @@ class TransactionListApiView(generics.GenericAPIView):
 
         # Convert string query params to boolean
         deposit = request.query_params.get("deposit", "true").lower() == "true"
-        withdrawal = request.query_params.get("withdrawal", "true").lower() == "true"
+        withdrawal = request.query_params.get(
+            "withdrawal", "true").lower() == "true"
 
         transactions = bank_account.transactions.all()
 
@@ -171,6 +191,7 @@ class TransactionListApiView(generics.GenericAPIView):
                 transaction_type=TRANSACTION_TYPE_DICT["WITHDRAWAL"]
             )
 
-        transactions_serializer = TransactionSerializer(transactions, many=True)
+        transactions_serializer = TransactionSerializer(
+            transactions, many=True)
 
         return Response(transactions_serializer.data, status=status.HTTP_200_OK)
