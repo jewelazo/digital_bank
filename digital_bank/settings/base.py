@@ -5,8 +5,7 @@ import os
 
 env = environ.Env()
 environ.Env.read_env(
-    os.path.join(os.path.dirname(os.path.dirname(
-        os.path.dirname(__file__))), ".env")
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env")
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -45,6 +44,7 @@ THIRD_APPS = [
     "rest_framework",
     "drf_yasg",
     "django_extensions",
+    "django_filters",
 ]
 
 INSTALLED_APPS = BASE_APPS + LOCAL_APPS + THIRD_APPS

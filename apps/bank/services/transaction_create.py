@@ -4,7 +4,9 @@ from ..constants import TRANSACTION_TYPE_DICT
 
 
 @transaction.atomic
-def transaction_create(*, user, bank_account, amount, transaction_type, bank_account_to=None) -> Transaction:
+def transaction_create(
+    *, user, bank_account, amount, transaction_type, bank_account_to=None
+) -> Transaction:
     """Creates a transaction for the given bank account with optional transfer to another account.
 
     Args:
@@ -23,7 +25,6 @@ def transaction_create(*, user, bank_account, amount, transaction_type, bank_acc
     bank_account = BankAccount.objects.select_for_update().get(id=bank_account.id)
     if not bank_account_to:
         if transaction_type == TRANSACTION_TYPE_DICT["DEPOSIT"]:
-
             transaction_obj = Transaction.objects.create(
                 bank_account=bank_account,
                 amount=amount,
@@ -35,7 +36,6 @@ def transaction_create(*, user, bank_account, amount, transaction_type, bank_acc
         elif transaction_type == TRANSACTION_TYPE_DICT["WITHDRAWAL"]:
             # Validate if bank account has sufficient balance to the withdrawal transaction in the same account
             if amount <= bank_account.balance:
-
                 transaction_obj = Transaction.objects.create(
                     bank_account=bank_account,
                     amount=amount,
@@ -52,7 +52,6 @@ def transaction_create(*, user, bank_account, amount, transaction_type, bank_acc
             id=bank_account_to.id
         )
         if transaction_type == TRANSACTION_TYPE_DICT["DEPOSIT"]:
-
             # Validate if bank account has sufficient balance to withdrawal transaction between distinct accounts
             if bank_account.balance >= amount:
                 transaction_obj = Transaction.objects.create(

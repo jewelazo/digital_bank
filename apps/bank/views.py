@@ -1,6 +1,6 @@
 from rest_framework import generics, status, serializers
 from rest_framework.response import Response
-from django.db.models import F
+from rest_framework.filters import OrderingFilter
 from drf_yasg.utils import swagger_auto_schema
 
 from .serializers import (
@@ -8,21 +8,21 @@ from .serializers import (
     TransactionSerializer,
 )
 from .models import BankAccount, Transaction
-from .utils import generate_bank_number
-from .constants import TRANSACTION_TYPE_DICT
-from .swagger_schemas import (
-    transaction_list_params,
-    transaction_list_responses,
-    transaction_list_description,
-)
 from .services.bank_account_create import bank_account_create
 from .services.transaction_create import transaction_create
+from .filters import TransactionFilter
+from django_filters.rest_framework import DjangoFilterBackend
 
 
 class BankAccountApiView(generics.GenericAPIView):
     class InputSerializer(serializers.Serializer):
         initial_balance = serializers.DecimalField(
-            max_digits=12, decimal_places=2, required=False, default=0.00, min_value=0.00, help_text="Initial balance for the bank account",
+            max_digits=12,
+            decimal_places=2,
+            required=False,
+            default=0.00,
+            min_value=0.00,
+            help_text="Initial balance for the bank account",
         )
 
     class OutputSerializer(serializers.ModelSerializer):
@@ -31,10 +31,7 @@ class BankAccountApiView(generics.GenericAPIView):
         def get_transactions(self, instance):
             transactions_from = instance.transactions.all()
             transactions_to = instance.transactions_to.all()
-            transactions = (
-                (transactions_from | transactions_to).order_by(
-                    "-created_at").distinct()
-            )
+            transactions = (transactions_from | transactions_to).order_by("-created_at")
             return TransactionSerializer(transactions, many=True).data
 
         class Meta:
@@ -53,19 +50,18 @@ class BankAccountApiView(generics.GenericAPIView):
         return Response(accounts_serializer.data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
-        request_body=InputSerializer,
-        responses={201: OutputSerializer()}
+        request_body=InputSerializer, responses={201: OutputSerializer()}
     )
     def post(self, request):
         bank_account_serializer = self.InputSerializer(data=request.data)
         bank_account_serializer.is_valid(raise_exception=True)
         bank_account = bank_account_create(
-            user=request.user, initial_balance=bank_account_serializer.validated_data["initial_balance"])
+            user=request.user,
+            initial_balance=bank_account_serializer.validated_data["initial_balance"],
+        )
 
         bank_account_serializer = self.OutputSerializer(bank_account)
-        return Response(
-            bank_account_serializer.data, status=status.HTTP_201_CREATED
-        )
+        return Response(bank_account_serializer.data, status=status.HTTP_201_CREATED)
 
 
 class TransactionsApiView(generics.GenericAPIView):
@@ -97,39 +93,27 @@ class TransactionsApiView(generics.GenericAPIView):
         )
 
 
-class TransactionListApiView(generics.GenericAPIView):
-    @swagger_auto_schema(
-        operation_description=transaction_list_description,
-        manual_parameters=transaction_list_params,
-        responses=transaction_list_responses,
-    )
-    def get(self, request, id=None):
-        bank_account = BankAccount.objects.filter(id=id).first()
-        if not bank_account or (
-            bank_account and bank_account not in request.user.accounts.all()
-        ):
-            return Response(
-                {"Error": "Should send a valid bank account and must be yours"},
-                status=status.HTTP_400_BAD_REQUEST,
+class TransactionListApiView(generics.ListAPIView):
+    serializer_class = TransactionSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = TransactionFilter
+    ordering_fields = ["created_at", "amount"]
+    ordering = ["-created_at"]
+
+    def get_queryset(self):
+        bank_account_id = self.kwargs.get("id")
+
+        # Validate bank account exists and belongs to user
+        bank_account = BankAccount.objects.filter(id=bank_account_id).first()
+        if not bank_account:
+            raise serializers.ValidationError({"error": "Bank account not found"})
+
+        if not self.request.user.accounts.filter(id=bank_account.id).exists():
+            raise serializers.ValidationError(
+                {"error": "You don't have permission to access this bank account"}
             )
 
-        # Convert string query params to boolean
-        deposit = request.query_params.get("deposit", "true").lower() == "true"
-        withdrawal = request.query_params.get(
-            "withdrawal", "true").lower() == "true"
-
-        transactions = bank_account.transactions.all()
-
-        if deposit and not withdrawal:
-            transactions = transactions.filter(
-                transaction_type=TRANSACTION_TYPE_DICT["DEPOSIT"]
-            )
-        elif withdrawal and not deposit:
-            transactions = transactions.filter(
-                transaction_type=TRANSACTION_TYPE_DICT["WITHDRAWAL"]
-            )
-
-        transactions_serializer = TransactionSerializer(
-            transactions, many=True)
-
-        return Response(transactions_serializer.data, status=status.HTTP_200_OK)
+        # Return transactions for this bank account (both outgoing and incoming)
+        return Transaction.objects.filter(
+            bank_account=bank_account
+        ) | Transaction.objects.filter(bank_account_to=bank_account)

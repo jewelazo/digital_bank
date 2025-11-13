@@ -5,5 +5,5 @@ from .views import BankAccountApiView, TransactionsApiView, TransactionListApiVi
 urlpatterns = [
     path("bank-accounts/", BankAccountApiView.as_view()),
     path("transactions/", TransactionsApiView.as_view()),
-    path("transactions/<int:id>/", TransactionListApiView.as_view()),
+    path("bank-accounts/<int:id>/transactions/", TransactionListApiView.as_view()),
 ]

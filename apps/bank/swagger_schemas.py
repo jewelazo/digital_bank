@@ -9,27 +9,29 @@ from .serializers import TransactionSerializer
 # Query parameters for TransactionListApiView
 transaction_list_params = [
     openapi.Parameter(
-        'deposit',
+        "deposit",
         openapi.IN_QUERY,
         description="Filter deposit transactions (true/false)",
         type=openapi.TYPE_BOOLEAN,
         required=False,
-        default=True
+        default=True,
     ),
     openapi.Parameter(
-        'withdrawal',
+        "withdrawal",
         openapi.IN_QUERY,
         description="Filter withdrawal transactions (true/false)",
         type=openapi.TYPE_BOOLEAN,
         required=False,
-        default=True
+        default=True,
     ),
 ]
 
 # Responses for TransactionListApiView
 transaction_list_responses = {
     200: TransactionSerializer(many=True),
-    400: 'Bad Request - Invalid bank account or not yours'
+    400: "Bad Request - Invalid bank account or not yours",
 }
 
-transaction_list_description = "Get transactions for a specific bank account with optional filters"
+transaction_list_description = (
+    "Get transactions for a specific bank account with optional filters"
+)

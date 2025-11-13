@@ -1,4 +1,3 @@
-
 from apps.bank.models import BankAccount
 from apps.account.models import User
 from ..utils import generate_bank_number

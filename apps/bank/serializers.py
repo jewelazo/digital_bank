@@ -7,39 +7,12 @@ from .models import BankAccount, Transaction
 from .constants import TRANSACTION_TYPE_DICT
 
 
-class BankAccountSerializer(serializers.Serializer):
-    user_id = PrimaryKeyRelatedField(
-        queryset=User.objects.all(), required=False)
-
-
-class BankAccountModelSerializer(serializers.ModelSerializer):
-    transactions = serializers.SerializerMethodField()
-
-    def get_transactions(self, instance):
-        transactions_from = instance.transactions.all()
-        transactions_to = instance.transactions_to.all()
-        transactions = (
-            (transactions_from | transactions_to).order_by(
-                "-created_at").distinct()
-        )
-        return TransactionSerializer(transactions, many=True).data
-
-    class Meta:
-        model = BankAccount
-        fields = (
-            "id",
-            "account_number",
-            "balance",
-            "transactions",
-        )
-
-
 class TransactionModelSerializer(serializers.ModelSerializer):
     bank_account_number = serializers.SlugRelatedField(
         queryset=BankAccount.objects.all(),
         slug_field="account_number",
         label=_("Bank account number"),
-        help_text=_("Bank account number")
+        help_text=_("Bank account number"),
     )
     # Optional field in payload, only to transactions between distinct accounts, default=None
     bank_account_number_to = serializers.SlugRelatedField(
@@ -49,7 +22,7 @@ class TransactionModelSerializer(serializers.ModelSerializer):
         required=False,
         default=None,
         label=_("Bank account number to"),
-        help_text=_("Bank account number to x-nullable: true")
+        help_text=_("Bank account number to x-nullable: true"),
     )
 
     def validate(self, data):

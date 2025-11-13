@@ -28,7 +28,9 @@ USER_PAYLOAD = {
 
 
 # Helper functions
-def create_transaction(api_client, account_number, amount, transaction_type, account_number_to=None):
+def create_transaction(
+    api_client, account_number, amount, transaction_type, account_number_to=None
+):
     """Helper function to create a transaction.
 
     Args:
@@ -114,6 +116,6 @@ def bank_account_with_balance(api_client_logged, bank_account):
         api_client_logged,
         bank_account["account_number"],
         INITIAL_DEPOSIT_AMOUNT,
-        "deposit"
+        "deposit",
     )
     return bank_account
