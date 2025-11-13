@@ -16,6 +16,7 @@ from .swagger_schemas import (
     transaction_list_description,
 )
 from .services.bank_account_create import bank_account_create
+from .services.transaction_create import transaction_create
 
 
 class BankAccountApiView(generics.GenericAPIView):
@@ -71,91 +72,28 @@ class TransactionsApiView(generics.GenericAPIView):
     serializer_class = TransactionModelSerializer
 
     def post(self, request):
-        transaction_serializer = TransactionModelSerializer(data=request.data)
+        transaction_serializer = self.serializer_class(data=request.data)
+        transaction_serializer.is_valid(raise_exception=True)
 
-        if transaction_serializer.is_valid():
-            bank_account = transaction_serializer.validated_data["bank_account_number"]
-            bank_account_to = transaction_serializer.validated_data[
-                "bank_account_number_to"
-            ]
-            transaction_type = transaction_serializer.validated_data["transaction_type"]
-            amount = transaction_serializer.validated_data["amount"]
-
-            # Validate only transactions from logged user accounts"
-            if bank_account not in request.user.accounts.all():
-                return Response(
-                    {"response": "Only deposits and withdrawals from your accounts"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            # Validate only transactions from the same logged user(deposit-withdrawal),field "bank_account_number_to" not in payload or its value is None
-            if not bank_account_to:
-                if transaction_type == TRANSACTION_TYPE_DICT["DEPOSIT"]:
-                    Transaction.objects.create(
-                        bank_account=bank_account,
-                        amount=amount,
-                        transaction_type=transaction_type,
-                    )
-                    bank_account.balance += amount
-                    bank_account.save()
-
-                    return Response(
-                        {"response": "Success Transaction"},
-                        status=status.HTTP_201_CREATED,
-                    )
-
-                elif transaction_type == TRANSACTION_TYPE_DICT["WITHDRAWAL"]:
-                    # Validate if bank account has sufficient balance to the withdrawal transaction in the same account
-                    if amount <= bank_account.balance:
-                        Transaction.objects.create(
-                            bank_account=bank_account,
-                            amount=amount,
-                            transaction_type=transaction_type,
-                        )
-                        bank_account.balance -= amount
-                        bank_account.save()
-
-                        return Response(
-                            {"response": "Success Transaction"},
-                            status=status.HTTP_201_CREATED,
-                        )
-
-                    return Response(
-                        {"response": "Insufficient bank account balance"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-            else:
-                if transaction_type == TRANSACTION_TYPE_DICT["DEPOSIT"]:
-                    bank_account = BankAccount.objects.filter(
-                        account_number=bank_account.account_number
-                    )
-                    bank_account_to = BankAccount.objects.filter(
-                        account_number=bank_account_to.account_number
-                    )
-
-                    # Validate if bank account has sufficient balance to withdrawal transaction between distinct accounts
-                    if bank_account.first().balance >= amount:
-                        bank_account.update(balance=F("balance") - amount)
-                        bank_account_to.update(balance=F("balance") + amount)
-                        Transaction.objects.create(
-                            bank_account=bank_account.first(),
-                            bank_account_to=bank_account_to.first(),
-                            amount=amount,
-                            transaction_type=transaction_type,
-                        )
-                        return Response(
-                            {"response": "Success Transaction"},
-                            status=status.HTTP_201_CREATED,
-                        )
-
-                    return Response(
-                        {"response": "Insufficient bank account balance"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+        bank_account = transaction_serializer.validated_data["bank_account_number"]
+        bank_account_to = transaction_serializer.validated_data[
+            "bank_account_number_to"
+        ]
+        transaction_type = transaction_serializer.validated_data["transaction_type"]
+        amount = transaction_serializer.validated_data["amount"]
+        try:
+            transaction_create(
+                user=request.user,
+                bank_account=bank_account,
+                amount=amount,
+                transaction_type=transaction_type,
+                bank_account_to=bank_account_to,
+            )
+        except ValueError as e:
+            return Response(e.args[0], status=status.HTTP_400_BAD_REQUEST)
 
         return Response(
-            transaction_serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            {"response": "Success Transaction"}, status=status.HTTP_201_CREATED
         )
 
 
